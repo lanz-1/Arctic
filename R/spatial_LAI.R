@@ -4,20 +4,29 @@ library(ggplot2)
 library(dplyr)
 library(tidyterra)
 
+
 #read data
-#from 31.12.1981 to 31.12.2018
+#from 31.12.1981 to 31.12.2021
+LAI_spatial <- metR::ReadNetCDF("data/spatial/1982_2021_cat_transxy_wgrid_invertlat.nc") |>
+  as_tibble()
 
-LAI_spatial <- metR::ReadNetCDF("data/spatial/LAI_AVHRR_global.nc",
-                    out = "data.frame")
 
-#experimental----
+#create time axis to add to data
+time_axis <- 1982:2021
+
+n_cells <- nrow(LAI_spatial) / 40
+
+LAI_spatial <- LAI_spatial |>
+  mutate(time = rep(time_axis, each = n_cells))
+
+#----experimental
 
 #spatial data in northern latitudes for 2011
-LAI_2011 <- LAI_spatial |> dplyr::filter((as.Date(time) == as.Date("2011-12-31")) & (latitude >= 55))
+LAI_2011 <- LAI_spatial |> dplyr::filter((as.Date(time) == as.Date("2011-12-31")) & (lat >= 55))
 
 #change data frame to SpatRaster object
 r_LAI_2011 <- LAI_2011 |>
-  dplyr::select(longitude, latitude, LAI) |>
+  dplyr::select(lon, lat, LAI) |>
   terra::rast(type = "xyz", crs = "EPSG:4326")
 
 
@@ -32,10 +41,10 @@ ggplot() + geom_spatraster(data = m) + scale_fill_viridis_d(na.value = NA) +
   labs(title = "LAI above 1.5 (true/false), Latitudes >= 55, 2011-12-31")
 
 
-LAI_1985 <- LAI_spatial |> dplyr::filter((as.Date(time) == as.Date("1985-12-31")) & (latitude >= 55))
+LAI_1985 <- LAI_spatial |> dplyr::filter((as.Date(time) == as.Date("1985-12-31")) & (lat >= 55))
 #change data frame to SpatRaster object
 r_LAI_1985 <- LAI_1985 |>
-  dplyr::select(longitude, latitude, LAI) |>
+  dplyr::select(lon, lat, LAI) |>
   terra::rast(type = "xyz", crs = "EPSG:4326")
 
 #plot LAI observation values for 1985
@@ -50,21 +59,19 @@ ggplot() + geom_spatraster(data = m) + scale_fill_viridis_d(na.value = NA) +
 
 #----
 
+# Filter northern latitudes
+LAI_north <- LAI_spatial |>
+  dplyr::filter(lat >= 55)
 
 #this is AI-generated. Creates a multi-layered spatraster object. One layer per year.
 
-# Filter northern latitudes, extract year
-LAI_north <- LAI_spatial |>
-  dplyr::filter(latitude >= 55) |>
-  dplyr::mutate(year = format(as.Date(time), "%Y"))
-
 # Build one SpatRaster per year, then stack
-years <- sort(unique(LAI_north$year))
+years <- sort(unique(LAI_north$time))
 
 raster_list <- lapply(years, function(yr) {
   LAI_north |>
-    dplyr::filter(year == yr) |>
-    dplyr::select(longitude, latitude, LAI) |>
+    dplyr::filter(time == yr) |>
+    dplyr::select(lon, lat, LAI) |>
     terra::rast(type = "xyz", crs = "EPSG:4326")
 })
 
@@ -75,6 +82,7 @@ names(r_LAI) <- years
 
 #end of AI section
 
+#----
 #plot year 2011, directly extracted from multi-layered r_LAI. 
 plot_r_LAI_2011 <- ggplot() + geom_spatraster(data = r_LAI[["2011"]]) + scale_fill_viridis_c(na.value = NA) +
   labs(title = "LAI: Latitudes >= 55, 2011-12-31")
@@ -83,7 +91,7 @@ plot_r_LAI_2011
 #see if the AI did it correctly (the plots should be the same)
 cowplot::plot_grid(plot_r_LAI_2011, plot_LAI_2011, nrow = 2)
 
-
+#----
 
 
 
@@ -98,6 +106,7 @@ r_LAI_trend <- terra::app(r_LAI, fun = function(x) {
   return(coef(fit)[2])  # return slope
 })
 
+
 names(r_LAI_trend) <- "LAI_trend"
 
 # Plot
@@ -105,12 +114,11 @@ ggplot() +
   geom_spatraster(data = r_LAI_trend) +
   scale_fill_gradient2(
     low = "red", mid = "white", high = "darkgreen",
-    limits = c(-0.02, 0.02), #set limits to -0.02 and 0.02 in order to have stronger colors.
+    limits = c(-0.02, 0.03), #set limits to -0.02 and 0.02 in order to have stronger colors.
     midpoint = 0,
     na.value = NA,
-    name = "LAI trend\n(per year)"
-  ) +
-  labs(title = "Linear trend in LAI (1981–2018)") +
+    name = "LAI trend\n(per year)") +
+  labs(title = "Linear trend in LAI (1982–2021)") +
   theme_minimal()
 
 
@@ -152,5 +160,3 @@ df
 
 #plot spatial mean by latitude. Look for latitude effect
 ggplot(data = df, aes(x = lat, y = mean)) + geom_col()
-
-#kann das stimmen? Vergleich mit Karte. Werte im Barplot sind sehr klein.

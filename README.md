@@ -22,7 +22,7 @@ R scripts used for plotting are stored in the /analysis folder. R functions used
 ### Data
 
 For LAI observation data I used the AVHRR product from (Jeong et al. 2024). You can access it here: 
-Model data was downloaded from Trendyv11 ( https://globalcarbonbudgetdata.org/).
+Model data was downloaded from Trendyv14 ( https://globalcarbonbudgetdata.org/).
 
 ### Literature
 

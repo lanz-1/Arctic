@@ -19,7 +19,7 @@ n_cells <- nrow(LAI_spatial) / 40
 LAI_spatial <- LAI_spatial |>
   mutate(time = rep(time_axis, each = n_cells))
 
-#----experimental
+#----
 
 #spatial data in northern latitudes for 2011
 LAI_2011 <- LAI_spatial |> dplyr::filter((as.Date(time) == as.Date("2011-12-31")) & (lat >= 55))
@@ -59,17 +59,17 @@ ggplot() + geom_spatraster(data = m) + scale_fill_viridis_d(na.value = NA) +
 
 #----
 
-# Filter northern latitudes
-LAI_north <- LAI_spatial |>
-  dplyr::filter(lat >= 55)
+# Filter northern latitudes (60 degrees)
+LAI_north_60 <- LAI_spatial |>
+  dplyr::filter(lat >= 60)
 
 #this is AI-generated. Creates a multi-layered spatraster object. One layer per year.
 
 # Build one SpatRaster per year, then stack
-years <- sort(unique(LAI_north$time))
+years <- sort(unique(LAI_north_60$time))
 
 raster_list <- lapply(years, function(yr) {
-  LAI_north |>
+  LAI_north_60 |>
     dplyr::filter(time == yr) |>
     dplyr::select(lon, lat, LAI) |>
     terra::rast(type = "xyz", crs = "EPSG:4326")
@@ -108,18 +108,8 @@ r_LAI_trend <- terra::app(r_LAI, fun = function(x) {
 
 
 names(r_LAI_trend) <- "LAI_trend"
+#end of AI section
 
-# Plot
-ggplot() +
-  geom_spatraster(data = r_LAI_trend) +
-  scale_fill_gradient2(
-    low = "red", mid = "white", high = "darkgreen",
-    limits = c(-0.02, 0.03), #set limits to -0.02 and 0.02 in order to have stronger colors.
-    midpoint = 0,
-    na.value = NA,
-    name = "LAI trend\n(per year)") +
-  labs(title = "Linear trend in LAI (1982–2021)") +
-  theme_minimal()
 
 
 #is there a latitude effect?
@@ -155,3 +145,34 @@ df
 
 #plot spatial mean by latitude. Look for latitude effect
 ggplot(data = df, aes(x = lat, y = mean)) + geom_point()
+
+
+
+# Plot trendline map
+LAI_trendmap <- ggplot() +
+  geom_spatraster(data = LAI_trend_land) +
+  scale_fill_gradient2(
+    low = "red", mid = "white", high = "darkgreen",
+    limits = c(-0.02, 0.04), #set limits to -0.02 and 0.04 in order to have stronger colors.
+    midpoint = 0,
+    na.value = NA,
+    name = "LAI trend\n(per year)") +
+  labs(title = "Linear trend in LAI (1982–2021)") +
+  theme_grey() +
+  theme(
+    panel.grid.major = element_line(colour = "gray"))
+
+
+#calculate Arctic mean LAI over time
+#remove oceans first
+
+r_LAI_land <- terra::mask(r_LAI, land)
+arc_mean <- terra::global(r_LAI_land, mean, na.rm = TRUE)
+arc_mean <- arc_mean |> dplyr::mutate(year = 1982:2021) #add year column for plot
+
+plot_arc_LAI <- ggplot(data = arc_mean,
+                       aes(x = year, y = mean)) +
+  geom_line() +
+  geom_smooth(method = "lm") +        #add linear regression line
+  labs(title = "60+ degrees mean LAI 1982-2021") 
+plot_arc_LAI

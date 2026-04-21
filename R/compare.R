@@ -11,14 +11,14 @@ library(tidyterra)
 
 compare <- function(dgvm) {
   #read data. LAI from one of the models.
-  LAI <- metR::ReadNetCDF(paste0("data/trendyv14_lai_july_mean/", dgvm, ".nc")) |>
+  LAI <- metR::ReadNetCDF(paste0("data/trendyv14_lai_july_mean/", dgvm, "_S3_lai.nc")) |>
     as_tibble()
   
   #filter data from 1982 to 2022
   LAI <- LAI |> dplyr::filter(time >= as.Date("1981-12-31"), time <= as.Date("2021-12-31"))
   
   #filter latitudes above 60 degrees
-  LAI <- LAI |> dplyr::filter("latitude" >= 60))
+  LAI <- LAI |> dplyr::filter("latitude" >= 60)
   
   
   
@@ -45,7 +45,7 @@ compare <- function(dgvm) {
   arc_mean_f <- terra::global(raster_LAI_f, mean, na.rm = TRUE)
   arc_mean_f <- arc_mean_f |> dplyr::mutate(year = 1982:2021) #add year column for plot
   
-  #plot mean LAI from 1982-2022 with trendline
+  #plot mean modelled LAI from 1982-2022 (blue) and observations
   p_mean_LAI_f <- ggplot() +
     geom_line(data = arc_mean_f,
               aes(x = year, y = mean), color = "blue") +
@@ -55,9 +55,17 @@ compare <- function(dgvm) {
   
   
   
-  #calculate deviation from observed mean
+  #calculate deviation from observed mean LAI
   
+  #mean absolute error
+  MAE <- mean(abs(arc_mean$mean -arc_mean_f$mean))
+
+  #root mean square error
+  RMSE <- sqrt(mean((arc_mean_f$mean - arc_mean$mean)^2))
   
+  return(tibble(Model = dgvm,
+                MAE = MAE,
+                RMSE = RMSE))
   
 }
 

@@ -11,8 +11,8 @@ library(tidyterra)
 
 compare <- function(dgvm) {
   #read data. LAI from one of the models.
-  LAI <- metR::ReadNetCDF(paste0("data/trendyv14_lai_july_mean/", dgvm, "_S3_lai.nc")) |>
-    as_tibble()
+  LAI <- metR::ReadNetCDF(paste0("data/trendyv14_lai_july_mean/", dgvm, "_S3_lai.nc"),
+                          vars = "lai") |> as_tibble()
   
 
   #some models have a 'lat' column, others a 'latitude' column. This causes errors. 
@@ -83,13 +83,14 @@ compare <- function(dgvm) {
     )
   
   
-  
+  #load observed Arctic mean LAI
+  arc_mean_obs <- readRDS("data/variables/arcmean_observed.rds")
   
   #plot mean modelled LAI from 1982-2022 (blue) and observations
   p_mean_LAI_f <- ggplot() +
     geom_line(data = arc_mean_f,
               aes(x = year, y = mean), color = "blue") +
-    geom_line(data = arctic_mean, aes(x = time, y = LAI)) + #observations
+    geom_line(data = arc_mean_obs, aes(x = time, y = LAI)) + #observations
     labs(title = paste0(dgvm, ": Arctic LAI 1982-2021")) 
   p_mean_LAI_f
   
@@ -101,13 +102,13 @@ compare <- function(dgvm) {
   #calculate deviation from observed mean LAI
   
   #mean absolute error
-  MAE <- mean(abs(arc_mean$mean -arc_mean_f$mean))
+  MAE <- mean(abs(arc_mean_obs$mean -arc_mean_f$mean))
 
   #root mean square error
-  RMSE <- sqrt(mean((arc_mean_f$mean - arc_mean$mean)^2))
+  RMSE <- sqrt(mean((arc_mean_f$mean - arc_mean_obs$mean)^2))
   
   return(tibble(model = dgvm,
-                slope = slope_m,
+                slope = slope_m * 40,
                 MAE = MAE,
                 RMSE = RMSE))
 }

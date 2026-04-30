@@ -148,6 +148,10 @@ ggplot(data = df, aes(x = lat, y = mean)) + geom_point()
 
 
 
+#save spatraster for trendline map, then load it again
+terra::writeRaster(LAI_trend_land, "data/variables/LAI_trend_land.tif")
+LAI_trend_land <- terra::rast("data/variables/LAI_trend_land.tif")
+
 # Plot trendline map
 LAI_trendmap <- ggplot() +
   geom_spatraster(data = LAI_trend_land) +
@@ -160,9 +164,10 @@ LAI_trendmap <- ggplot() +
   labs(title = "Linear trend in LAI (1982–2021)") +
   theme_grey() +
   theme(
-    panel.grid.major = element_line(colour = "gray"))
+    panel.grid.major = element_line(colour = "gray")) +
+  theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.8))
 
-
+LAI_trendmap
 #calculate Arctic mean LAI over time
 #remove oceans first
 
@@ -174,9 +179,7 @@ plot_arc_LAI <- ggplot(data = arc_mean,
                        aes(x = year, y = mean)) +
   geom_line() +
   geom_smooth(method = "lm") +        #add linear regression line
-  labs(title = "60+ degrees mean LAI 1982-2021") 
+  labs(title = "Arctic mean LAI 1982-2021") +
+  theme_bw()
 plot_arc_LAI
-
-
-saveRDS(arc_mean, "data/variables/arcmean_observed.rds")
 

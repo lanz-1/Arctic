@@ -13,7 +13,7 @@ df_metrics <- tibble(model = character(), slope = numeric(), MAE = numeric(), RM
 
 #create model name vector for iteration
 models <- c("CABLE-POP", "ORCHIDEE", "LPJ-GUESS", "EDv3", "DLEM", "IBIS",
-            "CLASSIC", "LPX-Bern", "JULES", "GDSTEM")
+            "CLASSIC", "LPX-Bern", "JULES", "GDSTEM", "CLM6.0", "JSBACH", "E3SM", "CLM-FATES", "LPJ-GUESS")
 
 
 for (m in models) {

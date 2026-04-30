@@ -12,7 +12,10 @@ This repository contains the files related to the Arctic greening project. The a
 2)	Test the performance of different Dynamic Global Vegetation Models (DGVMs) in modelling Arctic greening trends
 3)	Examine if model accuracy depends on the inclusion of nutrient cycling
 
-I used R 4.5.3 for the calculations.
+I used RStudio running on R 4.5.3 for the calculations. Most of the data was processed using the R terra package. 
+
+An introduction to R terra can be found here: https://geco-bern.github.io/handfull_of_pixels/geospatial_R.html
+
 
 ### Folder structure
 
@@ -22,6 +25,8 @@ R scripts used for plotting are stored in the /analysis folder. R functions used
 ### Data
 
 For LAI observation data I used the AVHRR product from (Jeong et al. 2024). You can access it here: https://www.sciencedirect.com/science/article/pii/S0034425724003006
+
+
 Model data was downloaded from Trendyv14 ( https://globalcarbonbudgetdata.org/).
 
 ### Literature

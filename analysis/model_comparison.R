@@ -48,6 +48,7 @@ boxplot_slope <- ggplot(data = df_metrics) +
         axis.ticks.x = element_blank())
 
 
+#compare MAE
 ggplot(data = df_metrics, aes(x = model, y = MAE)) + geom_col() + coord_flip()
 
 
@@ -59,7 +60,7 @@ obs_slope <- lm(weighted_mean ~ year, data = obs_arcmean)$coefficients["year"]
 obs_slope <- obs_slope * 40
 
 
-# Define colors to match your existing plot
+# Define colors (same as lineplot)
 model_colors <- c(
   "CABLE-POP"  = "#FF6B9D",
   "CLASSIC"    = "#E69500",
@@ -78,7 +79,9 @@ model_colors <- c(
   "VISIT-UT"   = "#FF1493"
 )
 
-ggplot(df_metrics, aes(x = "", y = slope)) +
+
+#boxplot with jitter points
+boxplot_jitter <- ggplot(df_metrics, aes(x = "", y = slope)) +
   geom_boxplot(outlier.shape = NA,fill = "grey90", width = 0.4) +
   geom_jitter( aes(color = model), width = 0.05, size = 2) +
   geom_hline(yintercept = obs_slope, color = "red", linewidth = 0.4) +

@@ -148,18 +148,38 @@ arcmean_visitut <- readRDS("data/variables/VISIT-UT_arcmean.rds") |> as_tibble()
 results_df <- rbind(results_df, arcmean_visitut)
 
 
-#save
+#save results
 saveRDS(results_df, "data/variables/arcmean_lai_timeseries.rds")
 
 #read
 results_df <- readRDS("data/variables/arcmean_lai_timeseries.rds")
 
 
+#define color scheme
+model_colors <- c(
+  "CABLE-POP"  = "#FF6B9D",
+  "CLASSIC"    = "#E69500",
+  "CLM-FATES"  = "#B8860B",
+  "CLM6.0"     = "#9DB800",
+  "DLEM"       = "#4CAF50",
+  "E3SM"       = "#2E7D32",
+  "EDv3"       = "#00695C",
+  "GDSTEM"     = "#00BCD4",
+  "IBIS"       = "#29B6F6",
+  "JSBACH"     = "#1565C0",
+  "JULES"      = "#5C6BC0",
+  "LPJ-GUESS"  = "#9C27B0",
+  "LPX-Bern"   = "#CE93D8",
+  "ORCHIDEE"   = "#FF80AB",
+  "VISIT-UT"   = "#FF1493"
+)
+
 
 #line plot to compare different models
 ggplot(results_df, aes(x = year, y = weighted_mean, color = model)) +
   geom_line(linewidth = 0.8) +
   geom_line(data = arc_mean_obs, aes(x = year, y = weighted_mean), color = "black", linewidth = 1.0) +
+  scale_color_manual(values = model_colors) +
   labs(
     x = "Year",
     y = "Arctic mean LAI",
@@ -172,7 +192,7 @@ ggplot(results_df, aes(x = year, y = weighted_mean, color = model)) +
 
 
 
-
+###
 #compare annual observed mean to annual modelled mean
 
 

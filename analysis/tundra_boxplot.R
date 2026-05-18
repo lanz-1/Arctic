@@ -11,8 +11,8 @@ library(terra)
 
 
 
-#load boreal modelled mean LAI. It was calculated in the file 'boreal_biome.R'.
-bor_means <- readRDS("data/variables/results_boreal_final.rds")
+#load tundra modelled mean LAI. It was calculated in the file 'tundra_biome.R'.
+tundra_means <- readRDS("data/variables/results_tundra_final.rds")
 
 
 
@@ -22,13 +22,13 @@ models <- c("CABLE-POP", "ORCHIDEE", "LPJ-GUESS", "EDv3", "DLEM", "IBIS",
 
 
 #create results tibble
-boreal_slopes <- tibble(model = character(), slope = numeric())
+tundra_slopes <- tibble(model = character(), slope = numeric())
 
 
 
 #iterate over the file to select data by model
 for (dgvm in models) {
-  d <- bor_means |> dplyr::filter(model == dgvm)
+  d <- tundra_means |> dplyr::filter(model == dgvm)
   
   linmod <- lm(weighted_mean ~ year, data = d)
   
@@ -36,37 +36,37 @@ for (dgvm in models) {
   slope <- coefficients(linmod)[2] * 40
   
   #store slope in results tibble
-  boreal_slopes <- boreal_slopes |> add_row(model = dgvm, slope = slope)
+  tundra_slopes <- tundra_slopes |> add_row(model = dgvm, slope = slope)
 }
 
 
-#save modelled boreal slopes
-saveRDS(boreal_slopes, "data/variables/boreal_slopes.rds")
-boreal_slopes <- readRDS("data/variables/boreal_slopes.rds")
+#save modelled tundra slopes
+saveRDS(tundra_slopes, "data/variables/tundra_slopes.rds")
+tundra_slopes <- readRDS("data/variables/tundra_slopes.rds")
 
 
 
-#load boreal observations
-bor_mean_obs <- readRDS("data/variables/boreal_mean_obs.rds")
+#load tundra observations
+tundra_mean_obs <- readRDS("data/variables/tundra_mean_obs.rds")
 
 #calculate slope
-linmod_obs <- lm(weighted_mean ~ year, data = bor_mean_obs)
-slope_bor_obs <- coefficients(linmod_obs)[2] * 40
+linmod_obs <- lm(weighted_mean ~ year, data = tundra_mean_obs)
+tundra_bor_obs <- coefficients(linmod_obs)[2] * 40
 
 
 #boxplot with jitter points
-boreal_boxplot <- ggplot(boreal_slopes, aes(x = "", y = slope)) +
+tundra_boxplot <- ggplot(tundra_slopes, aes(x = "", y = slope)) +
   geom_boxplot(outlier.shape = NA,fill = "grey90", width = 0.4) +
   geom_jitter(aes(color = model), width = 0.05, size = 2) +
   geom_hline(yintercept = slope_bor_obs, color = "red", linewidth = 0.4) +
   scale_color_manual(values = model_colors) +
   labs(
-    title = "Distribution of Boreal LAI Trends by Model",
-    subtitle = "Red Line: Slope of Boreal LAI Observations",
+    title = "Distribution of Tundra LAI Trends by Model",
+    subtitle = "Red Line: Slope of Tundra LAI Observations",
     x = NULL,
     y = "Slope",
     color = "Model"
   ) +
   theme_bw()
 
-boreal_boxplot
+tundra_boxplot

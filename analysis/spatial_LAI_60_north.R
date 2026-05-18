@@ -5,6 +5,16 @@ library(dplyr)
 library(tidyterra)
 
 
+# This script is used to analyze LAI observation values.
+# The outputs include:
+
+#a map showing trends in LAI
+#a line plot showing the spatial mean LAI over time
+
+
+
+
+
 #read data
 #from 31.12.1981 to 31.12.2021
 LAI_spatial <- metR::ReadNetCDF("data/spatial/1982_2021_cat_transxy_wgrid_invertlat.nc") |>

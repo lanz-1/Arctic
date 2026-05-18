@@ -6,23 +6,21 @@ library(tidyterra)
 
 
 
+# This script is used to plot annual boreal means of model data.
 
-
-
-# This script is used to plot modelled LAI (spatial means) together in a line plot.
 
 
 
 
 # Create model name vector for iteration
-models <- c("CABLE-POP", "ORCHIDEE", "LPJ-GUESS", "EDv3", "DLEM", "IBIS",
-         "CLASSIC", "LPX-Bern", "JULES", "GDSTEM", "CLM6.0", "JSBACH", "E3SM", "CLM-FATES")
+models <- c("CLM6.0", "ORCHIDEE", "LPJ-GUESS", "EDv3", "DLEM", "IBIS",
+            "CLASSIC", "LPX-Bern", "GDSTEM", "CLM6.0", "JSBACH", "E3SM", "CLM-FATES", "JULES")
 
 
 
 
 #VISIT-UT has a different time format and takes long to calculate. It was done separately.
-  
+
 #read land surface shapefile, later used for masking
 land <- terra::vect("data/spatial/land_surface/ne_10m_land.shp")
 
@@ -50,10 +48,16 @@ for (dgvm in models) {
   
   # Read data. LAI from one of the models.
   LAI <- metR::ReadNetCDF(paste0("data/trendyv14_lai_july_mean/", dgvm, "_S3_lai.nc"),
-    vars = "lai") |> as_tibble()
+                          vars = "lai") |> as_tibble()
   
-  #some models have a 'lat' column, others a 'latitude' column. This causes errors. 
+
+  #create the boreal mask
+  m_boreal <- metR::ReadNetCDF(paste0("data/lct_regrid_for_trendy/boreal/", dgvm, "_S3_lai.nc_boreal_mask"),
+                               vars = "Majority_Land_Cover_Type_1") |> as_tibble()
   
+  
+  
+  #pre-process data
   #rename potential 'lat' column to 'latitude'
   if ("lat" %in% colnames(LAI)){
     LAI <- LAI |> dplyr::rename(latitude = lat)
@@ -63,6 +67,27 @@ for (dgvm in models) {
   if ("lon" %in% colnames(LAI)){
     LAI <- LAI |> dplyr::rename(longitude = lon)
   }
+  
+  #same for the mask
+  if ("lat" %in% colnames(m_boreal)){
+    m_boreal <- m_boreal |> dplyr::rename(latitude = lat)
+  }
+  
+  #same for the mask
+  if ("lon" %in% colnames(m_boreal)){
+    m_boreal <- m_boreal |> dplyr::rename(longitude = lon)
+  }
+  
+  
+  
+  # Join mask and data on spatial coordinates, then multiply
+  LAI <- LAI |>
+    left_join(m_boreal, by = c("latitude", "longitude")) |>       
+    mutate(lai_boreal = lai * Majority_Land_Cover_Type_1)
+  
+  
+  
+  
   
   
   # Filter latitudes above 60 degrees
@@ -97,12 +122,13 @@ for (dgvm in models) {
   )
   
   
+  
   # Build multilayer SpatRaster with one layer per year
   years_f <- sort(unique(LAI$time))
   raster_list_f <- lapply(years_f, function(yr) {
     r_df <- LAI |>
       dplyr::filter(time == yr) |>
-      dplyr::select(longitude, latitude, lai) |>
+      dplyr::select(longitude, latitude, lai_boreal) |>
       dplyr::mutate(
         longitude = round(longitude, 3),
         latitude  = round(latitude, 3)
@@ -115,14 +141,14 @@ for (dgvm in models) {
       # Capture r_df explicitly into error handler scope
       r_df_local <- r_df
       pts <- terra::vect(r_df_local, geom = c("longitude", "latitude"), crs = "EPSG:4326")
-      terra::rasterize(pts, target_grid, field = "lai", fun = mean)
+      terra::rasterize(pts, target_grid, field = "lai_boreal", fun = mean)
     })
     
     # Resample onto common grid for comparability across models
     terra::resample(r_out, target_grid, method = "bilinear")
   })
-
-
+  
+  
   raster_LAI_f <- terra::rast(raster_list_f)
   names(raster_LAI_f) <- years_f
   
@@ -144,25 +170,25 @@ for (dgvm in models) {
   
   # Save to results list
   results[[dgvm]] <- arc_mean_f
-
+  
   
 }
 
-results_df <- dplyr::bind_rows(results)
 
-#load Arctic mean LAI of VISIT-UT model
-arcmean_visitut <- readRDS("data/variables/VISIT-UT_arcmean.rds") |> as_tibble() |>
+results_boreal <- dplyr::bind_rows(results)
+
+
+#load boreal mean LAI of VISIT-UT model
+boreal_visitut <- readRDS("data/variables/results_boreal_visitut.rds") |> as_tibble() |>
   tidyr::unpack(everything())
 
 #add to results dataframe
-results_df <- rbind(results_df, arcmean_visitut)
+results_boreal_final <- rbind(results_boreal, boreal_visitut)
 
 
-#save results
-saveRDS(results_df, "data/variables/arcmean_lai_timeseries.rds")
-
-#read
-results_df <- readRDS("data/variables/arcmean_lai_timeseries.rds")
+#save and reload
+saveRDS(results_boreal_final, "data/variables/results_boreal_final.rds")
+results_boreal_final <- readRDS("data/variables/results_boreal_final.rds")
 
 
 #define color scheme
@@ -185,57 +211,47 @@ model_colors <- c(
 )
 
 
+
+#load observed boreal mean, which is calculated in the script 'boreal_mean_observations.R'
+bor_obs <- readRDS("data/variables/boreal_mean_obs.rds")
+
 #line plot to compare different models
-ggplot(results_df, aes(x = year, y = weighted_mean, color = model)) +
+ggplot(results_boreal_final, aes(x = year, y = weighted_mean, color = model)) +
   geom_line(linewidth = 0.8) +
-  geom_line(data = arc_mean_obs, aes(x = year, y = weighted_mean), color = "black", linewidth = 1.0) +
+  geom_line(data = bor_obs, aes(x = year, y = weighted_mean), color = "black", linewidth = 1.0) +
   scale_color_manual(values = model_colors) +
   labs(
     x = "Year",
-    y = "Arctic mean LAI",
+    y = "Boreal mean LAI",
     color = "Model",
-    title = "Arctic Mean LAI by Model, 1982–2021",
-    subtitle = "Observation values in black"
+    title = "Boreal Mean LAI by Model, 1982–2021"
+    #,subtitle = "Observation values in black"
   ) +
   theme_bw()
 
 
 
 
-###
-# idea: compare annual observed mean to annual modelled mean
+#----
+#Example: plot boreal LAI in 2011. See if the masking worked.
+
+# Extract one year as a single SpatRaster layer
+lai_2011 <- raster_LAI_f[[which(format(as.POSIXct(years_f), "%Y") == "2011")]]
+
+ggplot() +
+  geom_spatraster(data = lai_2011) +
+  geom_spatvector(data = land, fill = NA, color = "grey30", linewidth = 0.2) +
+  scale_fill_viridis_c(
+    name = "LAI (m²/m²)",
+    option = "viridis"
+  ) +
+  coord_sf(ylim = c(60, 90)) +
+  labs(
+    title = paste0(dgvm, " — Boreal LAI, July 2011"),
+    x = NULL, y = NULL
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 
 
-# Merge modelled and observed by year
-scatter_df <- results_df |>
-  dplyr::left_join(
-    arc_mean_obs |> dplyr::select(year, weighted_mean) |> dplyr::rename(obs = weighted_mean),
-    by = "year"
-  )
-
-# 1:1 line range
-lims <- range(c(scatter_df$weighted_mean, scatter_df$obs), na.rm = TRUE)
-
-# Create a list of plots, one per model
-plot_list <- lapply(unique(scatter_df$model), function(m) {
-  df_m <- scatter_df |> dplyr::filter(model == m)
-  
-  ggplot(df_m, aes(x = obs, y = weighted_mean)) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey40", linewidth = 0.6) +
-    geom_point(alpha = 0.7, size = 1.5, color = "blue") +
-    coord_equal(xlim = c(0, 2), ylim = c(0, 2)) +
-    labs(
-      title = m,
-      x = "Observed",
-      y = "Modelled"
-    ) +
-    theme_bw() +
-    theme(
-      plot.title = element_text(size = 8, face = "bold"),
-      axis.text  = element_text(size = 7),
-      axis.title = element_text(size = 7)
-    )
-})
-
-cowplot::plot_grid(plotlist = plot_list, ncol = 4)
-plot_list[5]
+#----

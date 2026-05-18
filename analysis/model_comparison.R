@@ -7,6 +7,16 @@ library(tidyterra)
 source("./R/compare.R")
 
 
+# This script is used to analyze model data. I calculate the deviation from modelled LAI to observed LAI.
+# This is done by iterating over every model and applying the function "compare()".
+# 
+#The output is a boxplot showing the distribution of modelled LAI trends
+
+
+
+
+
+
 #create empty tibble to store metrics of different models
 df_metrics <- tibble(model = character(), slope = numeric(), MAE = numeric(), RMSE = numeric())
 
@@ -49,7 +59,9 @@ boxplot_slope <- ggplot(data = df_metrics) +
 
 
 #compare MAE
-ggplot(data = df_metrics, aes(x = model, y = MAE)) + geom_col() + coord_flip()
+ggplot(data = df_metrics, aes(x = model, y = MAE)) + geom_col() + 
+  labs(title = "MAE of different Models") +
+    coord_flip()
 
 
 #load observations

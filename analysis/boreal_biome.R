@@ -13,7 +13,7 @@ library(tidyterra)
 
 
 # Create model name vector for iteration
-models <- c("CLM6.0", "ORCHIDEE", "LPJ-GUESS", "EDv3", "DLEM", "IBIS",
+models <- c("CLM6.0", "CABLE-POP", "ORCHIDEE", "LPJ-GUESS", "EDv3", "DLEM", "IBIS",
             "CLASSIC", "LPX-Bern", "GDSTEM", "CLM6.0", "JSBACH", "E3SM", "CLM-FATES", "JULES")
 
 

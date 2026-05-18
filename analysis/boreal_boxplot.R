@@ -1,0 +1,67 @@
+library(ncdf4)
+library(metR)
+library(ggplot2)
+library(dplyr)
+library(tidyterra)
+library(terra)
+
+
+# This file is used to create a boxplot showing the distribution of modelled LAI trends
+# in the BOREAL biome
+
+
+
+#load boreal modelled mean LAI. It was calculated in the file 'boreal_biome.R'.
+bor_means <- readRDS("data/variables/results_boreal_final.rds")
+
+
+
+#create model name vector for iteration
+models <- c("CABLE-POP", "ORCHIDEE", "LPJ-GUESS", "EDv3", "DLEM", "IBIS",
+            "CLASSIC", "LPX-Bern", "JULES", "GDSTEM", "CLM6.0", "JSBACH", "E3SM", "CLM-FATES", "VISIT-UT")
+
+
+#create results tibble
+boreal_slopes <- tibble(model = character(), slope = numeric())
+
+
+
+#iterate over the file to select data by model
+for (dgvm in models) {
+  d <- bor_means |> dplyr::filter(model == dgvm)
+  
+  linmod <- lm(weighted_mean ~ year, data = d)
+  
+  #trend slope over the total 40 years
+  slope <- coefficients(linmod)[2] * 40
+  
+  #store slope in results tibble
+  boreal_slopes <- boreal_slopes |> add_row(model = dgvm, slope = slope)
+}
+
+
+
+#load boreal observations
+bor_mean_obs <- readRDS("data/variables/boreal_mean_obs.rds")
+
+#calculate slope
+linmod_obs <- lm(weighted_mean ~ year, data = bor_mean_obs)
+slope_bor_obs <- coefficients(linmod_obs)[2] * 40
+
+
+#boxplot with jitter points
+boreal_boxplot <- ggplot(boreal_slopes, aes(x = "", y = slope)) +
+  geom_boxplot(outlier.shape = NA,fill = "grey90", width = 0.4) +
+  geom_jitter(aes(color = model), width = 0.05, size = 2) +
+  geom_hline(yintercept = slope_bor_obs, color = "red", linewidth = 0.4) +
+  scale_color_manual(values = model_colors) +
+  labs(
+    title = "Distribution of Boreal LAI Trends by Model",
+    subtitle = "Red Line: Slope of Boreal LAI Observations",
+    x = NULL,
+    y = "Slope",
+    color = "Model"
+  ) +
+  theme_bw()
+
+boreal_boxplot

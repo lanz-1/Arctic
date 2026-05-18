@@ -6,9 +6,15 @@ library(tidyterra)
 
 
 
-# Create model name vector for iteration
-models <- c("IBIS")
 
+# This script is to plot the different modelled LAI means in the tundra biome.
+
+
+
+
+# Create model name vector for iteration
+models <- c("CLM6.0", "ORCHIDEE", "LPJ-GUESS", "EDv3", "DLEM", "IBIS",
+            "CLASSIC", "LPX-Bern", "GDSTEM", "CABLE-POP", "JSBACH", "E3SM", "CLM-FATES", "JULES")
 
 
 
@@ -55,12 +61,25 @@ for (dgvm in models) {
     LAI <- LAI |> dplyr::rename(longitude = lon)
   }
   
+
+  
   
   #now create the Tundra mask. Multiply LAI values with the mask to select
   #only values inside the biome.
+  m_tundra <- metR::ReadNetCDF(paste0("data/lct_regrid_for_trendy/tundra/", dgvm, "_S3_lai.nc_tundra_mask"), 
+                               vars = "Majority_Land_Cover_Type_1") |> as_tibble()
   
-  m_tundra <- metR::ReadNetCDF(paste0("data/lct_regrid_for_trendy/tundra/", dgvm, "_S3_lai.nc_tundra_mask")) |> as_tibble()
+  #rename colnames for the mask
+  if ("lat" %in% colnames(m_tundra)){
+    m_tundra <- m_tundra |> dplyr::rename(latitude = lat)
+  }
   
+  #rename colnames for the mask
+  if ("lon" %in% colnames(m_tundra)){
+    m_tundra <- m_tundra |> dplyr::rename(longitude = lon)
+  }
+  
+ 
   
   # Join mask and data on spatial coordinates, then multiply
   LAI <- LAI |>
@@ -156,12 +175,74 @@ for (dgvm in models) {
   
 }
 
+
+results_tundra <- dplyr::bind_rows(results)
   
   
-  
-  
-  
-  
+#load tundra mean from VISIT-UT
+tundra_visitut <- readRDS("data/variables/tundra_visitut.rds")
+
+#add them to results table
+results_tundra_final <- rbind(results_tundra, tundra_visitut)
+
+#save and reload
+saveRDS(results_tundra_final, "data/variables/results_tundra_final.rds")
+readRDS("data/variables/results_tundra_final.rds")
+
+
+
+
+
+#load tundra observations from file 'tundra_mean_observations.R'
+tundra_mean_obs <- readRDS("data/variables/tundra_mean_obs.rds")
+
+
+
+#define color scheme
+model_colors <- c(
+  "CABLE-POP"  = "#FF6B9D",
+  "CLASSIC"    = "#E69500",
+  "CLM-FATES"  = "#B8860B",
+  "CLM6.0"     = "#9DB800",
+  "DLEM"       = "#4CAF50",
+  "E3SM"       = "#2E7D32",
+  "EDv3"       = "#00695C",
+  "GDSTEM"     = "#00BCD4",
+  "IBIS"       = "#29B6F6",
+  "JSBACH"     = "#1565C0",
+  "JULES"      = "#5C6BC0",
+  "LPJ-GUESS"  = "#9C27B0",
+  "LPX-Bern"   = "#CE93D8",
+  "ORCHIDEE"   = "#FF80AB",
+  "VISIT-UT"   = "#FF1493"
+)
+
+
+
+#line plot to compare different models
+ggplot(results_tundra_final, aes(x = year, y = weighted_mean, color = model)) +
+  geom_line(linewidth = 0.8) +
+  geom_line(data = tundra_mean_obs, aes(x = year, y = weighted_mean), color = "black", linewidth = 1.0) +
+  scale_color_manual(values = model_colors) +
+  labs(
+    x = "Year",
+    y = "Tundra Mean LAI",
+    color = "Model",
+    title = "Tundra Mean LAI by Model, 1982–2021"
+    #,subtitle = "Observation values in black"
+  ) +
+  theme_bw()
+
+
+
+
+
+
+
+
+
+
+
   
 #Example: plot tundra LAI in 2011
 
